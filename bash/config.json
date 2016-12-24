@@ -1,0 +1,40 @@
+{
+  "IamFleetRole": "arn:aws:iam::518693498655:role/aws-ec2-spot-fleet-role",
+  "AllocationStrategy": "lowestPrice",
+  "TargetCapacity": 1,
+  "SpotPrice": "0.25",
+  "ValidFrom": "2016-12-13T15:53:04Z",
+  "ValidUntil": "2017-12-13T15:53:04Z",
+  "TerminateInstancesWithExpiration": true,
+  "LaunchSpecifications": [
+    {
+      "ImageId": "ami-0a48126f",
+      "InstanceType": "c4.8xlarge",
+      "KeyName": "ohio-cluster",
+      "IamInstanceProfile": {
+        "Arn": "arn:aws:iam::518693498655:instance-profile/SimulationNode"
+      },
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/sda1",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "VolumeType": "gp2",
+            "VolumeSize": 15,
+            "SnapshotId": "snap-25de0dd4"
+          }
+        }
+      ],
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-6fd12006"
+        },
+        {
+          "GroupId": "sg-162ded7f"
+        }
+      ],
+      "UserData": "IyEvYmluL2Jhc2gKCm1rZGlyIC9ob21lL3VidW50dS9wa2cvCm1rZGlyIC9ob21lL3VidW50dS9wa2cvYXBwLwpta2RpciAvaG9tZS91YnVudHUvcGtnL3Jlcy8KbWtkaXIgL2hvbWUvdWJ1bnR1L3BrZy9sb2cvCgphd3MgczMgLS1yZWdpb24gdXMtZWFzdC0xIHN5bmMgczM6Ly9wc3p1ZmUtc2ltcmVzL1BLRy9hcHAvIC9ob21lL3VidW50dS9wa2cvYXBwLwoKcmV0cnk9MQpuZXh0aWQ9MAp3aGlsZSBbICRyZXRyeSAtZXEgMSBdCmRvCiAgaWQ9YGF3cyBkeW5hbW9kYiAtLXJlZ2lvbiB1cy1lYXN0LTEgZ2V0LWl0ZW0gLS10YWJsZS1uYW1lIGNsdXN0ZXIgLS1rZXkgJ3sidHlwZSI6eyJTIjoiY3VycmVudGpvYmlkIn0sIm5vZGUiOnsiUyI6Im5vbmUifX0nIHwganEgLXIgJy5JdGVtLmlkLk4nYAogIG5leHRpZD0kKChpZCsxKSkKICByZXRyeT0wCiAgewogICAgYXdzIGR5bmFtb2RiIC0tcmVnaW9uIHVzLWVhc3QtMSBwdXQtaXRlbSAtLXRhYmxlLW5hbWUgY2x1c3RlciAtLWl0ZW0gJ3sidHlwZSI6eyJTIjoiY3VycmVudGpvYmlkIn0sIm5vZGUiOnsiUyI6Im5vbmUifSwiaWQiOnsiTiI6Iicke25leHRpZH0nIn19JyAtLWNvbmRpdGlvbi1leHByZXNzaW9uICdpZD06aWQxJyAtLWV4cHJlc3Npb24tYXR0cmlidXRlLXZhbHVlICd7IjppZDEiOnsiTiI6Iicke2lkfScifX0nICY+IC9kZXYvbnVsbAogIH0gfHwgewogICAgZWNobyAiV2lsbCByZXRyeSAtIHdpdGggJHtuZXh0aWR9ICBJIGhhdmUgZmFpbGVkIgogICAgcmV0cnk9MQogIH0KZG9uZQoKZGF0ZTE9JChkYXRlIC11ICslWS0lbS0lZFQlSDolTTolUykKZWNobyAiR290IGlkISAke25leHRpZH0gYXQgJHtkYXRlMX0iCgphd3MgZHluYW1vZGIgLS1yZWdpb24gdXMtZWFzdC0xIHB1dC1pdGVtIC0tdGFibGUtbmFtZSBjbHVzdGVyIC0taXRlbSAneyJ0eXBlIjp7IlMiOiJqb2JpZCJ9LCJub2RlIjp7IlMiOiInJHtIT1NUTkFNRX0nIn0sImlkIjp7Ik4iOiInJHtuZXh0aWR9JyJ9LCJkYXRlIjp7IlMiOiInJHtkYXRlMX0nIn19JwoKCmJhc2ggL2hvbWUvdWJ1bnR1L3BrZy9hcHAvam9icy5zaCAke25leHRpZH0K"
+    }
+  ],
+  "Type": "maintain"
+}

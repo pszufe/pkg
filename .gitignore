@@ -1,12 +1,12 @@
-*.class
+bin/
+results/
+.Rhistory
+.RData
+*.pdf
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
 
-# Package Files #
-*.jar
-*.war
-*.ear
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+R/.RData
+R/tex/akg_plots.tex
+R/tex/data1.tex
+R/tex/data2.tex
