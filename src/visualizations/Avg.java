@@ -1,5 +1,7 @@
 package visualizations;
-
+/**
+ java -server -Xmx1500M -cp app/lib/*:app/bin visualizations.Avg results.csv > fileout.txt
+ */
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;

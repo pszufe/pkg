@@ -20,7 +20,7 @@ public class Experiments_N5_v2 {
 		int NUMBER_OF_SIMs = 40;
 		int MAX_EXPERIM_TIME = 80;
 		
-		BufferedReader br = new BufferedReader(new FileReader("parameters2.txt.seed.txt"));
+		BufferedReader br = new BufferedReader(new FileReader("parameters2_147880.txt.seed.txt"));
 		
 		while (br.ready()) {
 			long seed = Long.parseLong(br.readLine());		

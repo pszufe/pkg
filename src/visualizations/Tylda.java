@@ -1,5 +1,9 @@
 package visualizations;
 
+/*
+ * java -server -Xmx1500M -cp ./app/lib/*:./app/bin visualizations.Tylda
+ */
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;

@@ -8,6 +8,7 @@ import static java.lang.Math.sqrt;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -18,13 +19,24 @@ import simulator.RSpoint;
 import simulator.tools.CalculateEv;
 import simulator.tools.RandomStreamFactory;
 
-public class SKG_RSalgorithm implements PRSalgorithm {
+public class SKG_RSalgorithm implements PRSalgorithm, HasPreselection {
 
-	private double sigmas2[] = null; //priors  
-	private double mu[] = null; //priors
-	private int N;
-	private double vkg[];
-	private double best_vkg;
+	private int preselectionDistance  = -1;
+	public SKG_RSalgorithm() {
+		super();
+	}
+	public SKG_RSalgorithm(int preselectionDistance) {
+		super();
+		this.preselectionDistance = preselectionDistance;
+	}
+	
+	
+	
+	protected double sigmas2[] = null; //priors  
+	protected double mu[] = null; //priors
+	protected int N;
+	protected double vkg[];
+	protected double best_vkg;
 	private UnivariateFunction f = new UnivariateFunction() {
 		private NormalDistribution normal = new NormalDistribution();
 		@Override
@@ -34,13 +46,13 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 	};
 	private final NormalDistribution normal = new NormalDistribution();
 	
-	private boolean outOfNumericalAccuracy;
-	private final double numericalAccuracyDistTreshold = 1E-12;
-	private boolean ocbaFallback;
+	protected boolean outOfNumericalAccuracy;
+	protected final double numericalAccuracyDistTreshold = 1E-13;
+	protected boolean ocbaFallback;
 	
-	private int dspace[][];
+	private int dspaceFull[][];
 	
-    private int roundNo;
+    protected int roundNo;
 	@Override
 	public RSpoint[] getPointsInit_k_0(RSpoint[] points, int wNo, int a, int m) {
 		if (wNo!=0 || a >1) {
@@ -56,7 +68,7 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 			Arrays.fill(sigmas2, 1); //initial beliefs equal to real values
 			mu =  new double[N];
 			Arrays.fill(mu, 0); //initial beliefs equal to 0
-			this.dspace = Combi.allDSKG(N, m); //all possible decisions with N points and m slots
+			this.dspaceFull = Combi.allDSKG(N, m); //all possible decisions with N points and m slots
 		}
 		//in initialization just evenly split points across available workers, since all priors are equal and no other info is available
 		for (int w=0;w<m;w++) {
@@ -66,10 +78,105 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 		return res;		
 	}
 	
+	
+	
 	BufferedWriter log=null;
 	//ParallelLog log = null;
+	
+	/**
+	 * Makes a OCBA preselection
+	 * @param preselectionDistance - distance from OCBA-optimal point
+	 * @param m number of OCBA workers
+	 * @param points
+	 * @param dspaceFull
+	 * @return
+	 */
+	private static int[][] makePreselection(int preselectionDistance, int m, RSpoint[] points, int dspaceFull[][] ) {
+		ArrayList<int[]> res_ = new ArrayList<>();
+		
+		
+		int [] ocbarec = new int[points.length];
+		
+		boolean ocbaMinData = true;
+		
+		for (RSpoint p : points) ocbaMinData = ocbaMinData && p.getNoMeasures()>1;
+		
+		if (ocbaMinData) {
+			RSpoint[] alloc = OCBAImplementation.getOcba(points, m);	
+			for (RSpoint point : alloc) {
+				ocbarec[point.i]++;
+			}
+		} else {
+			int m_found = 0;
+			for (int i=0;i<points.length && m_found < m;i++) {
+				if (points[i].getNoMeasures() == 0) {
+					m_found++;
+					ocbarec[i]++;
+				}
+			}			
+			for (int i=0;i<points.length && m_found < m;i++) {
+				if (points[i].getNoMeasures() <= 1) {
+					m_found++;
+					ocbarec[i]++;
+				}
+			}
+			for (int k=0;k<m-m_found;k++) {
+				ocbarec[k % points.length]++;
+			}
+			
+		}
+		
+		
+		for (int[] row : dspaceFull ) {
+			int distance = 0;
+			for (int i=0;i<row.length;i++) {
+				distance += Math.abs(row[i]-ocbarec[i]);
+			}
+			if (distance <= preselectionDistance) 
+				res_.add(row);
+		}		
+		
+		
+		
+		int[][] res = res_.toArray(new int[res_.size()][]);
+		
+		/**
+		System.out.println("ocbarec with ocbaMinData="+ocbaMinData);
+		printNums(ocbarec);
+		println(ocbarec);
+		System.out.println();**/
+		/**System.out.println("Recommendations ");
+		for (int [] row : res) {
+			printNums(row);
+			println(row);
+		}
+		**/
+		
+		return (res);
+	}
+	
+	private static void printNums(int[] vals) {		
+		for (int i=0;i<vals.length;i++) {
+			for (int j=0;j<vals[i];j++) {
+				System.out.print(i+",");
+			}
+		}
+		System.out.print("\t");	
+	}
+	
+	
+	private static void println(int line[]) {		
+		for (int t : line) {
+			System.out.print(t+"\t");
+		}
+		System.out.println();
+	}
+	
 	@Override
 	public RSpoint[] getNextPoints(double[] x, RSpoint[] pointsEval, RSpoint[] points, int wNo, boolean debug) {
+					
+			
+		
 		int m = pointsEval.length; //number of parallel slots for this worker  
 		roundNo++;
 		RSpoint[] res;
@@ -102,7 +209,7 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 			double worstArg = 1e99;
 			double arg;
 			
-			
+			int dspace[][] = (preselectionDistance < 0)?dspaceFull:makePreselection(preselectionDistance,m,points,dspaceFull);
 			
 			double max_mumi = max(mu_m);
 			vkg = new double[dspace.length];
@@ -191,41 +298,58 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 	
 
 	public static void main (String args[]) throws Exception {
-		AKG_RSalgorithm akg = new AKG_RSalgorithm();
-		KG_RSalgorithm kg = new KG_RSalgorithm();
-		SKG_RSalgorithm skg = new SKG_RSalgorithm();
+		//AKG_RSalgorithm akg = new AKG_RSalgorithm();
+		//KG_RSalgorithm kg = new KG_RSalgorithm();
+		SKG_RSalgorithm skg0 = new SKG_RSalgorithm();
+		SKG_RSalgorithm skg2 = new SKG_RSalgorithm(2);
 		
-		skg.log = new BufferedWriter(new FileWriter("/temp/skg.log"));
-		int N = 5;
-		RandomStreamFactory rfSkg = new RandomStreamFactory(N, 0);
-		RandomStreamFactory rfAkg = new RandomStreamFactory(N, 0);
-		RandomStreamFactory rfKg = new RandomStreamFactory(N, 0);
-		RSpoint[] pointsSkg = new RSpoint[N];
-		RSpoint[] pointsAkg = new RSpoint[N];
-		RSpoint[] pointsKg = new RSpoint[N];
+		skg0.log = new BufferedWriter(new FileWriter("/temp/skg0.log"));
+		skg2.log = new BufferedWriter(new FileWriter("/temp/skg2.log"));
+		int N = 10;
+		RandomStreamFactory rfSkg0 = new RandomStreamFactory(N, 0);
+		RandomStreamFactory rfSkg2 = new RandomStreamFactory(N, 0);
+		//RandomStreamFactory rfAkg = new RandomStreamFactory(N, 0);
+		//RandomStreamFactory rfKg = new RandomStreamFactory(N, 0);
+		RSpoint[] pointsSkg0 = new RSpoint[N];
+		RSpoint[] pointsSkg2 = new RSpoint[N];
+		//RSpoint[] pointsAkg = new RSpoint[N];
+		//RSpoint[] pointsKg = new RSpoint[N];
 		
 		
 		for (int i=0;i<N;i++) {
-			pointsSkg[i] = new RSpoint(rfSkg.getStream(i), i);
-			pointsAkg[i] = new RSpoint(rfAkg.getStream(i), i);
-			pointsKg[i] = new RSpoint(rfKg.getStream(i), i);
+			pointsSkg0[i] = new RSpoint(rfSkg0.getStream(i), i);
+			pointsSkg2[i] = new RSpoint(rfSkg2.getStream(i), i);
+			//pointsAkg[i] = new RSpoint(rfAkg.getStream(i), i);
+			//pointsKg[i] = new RSpoint(rfKg.getStream(i), i);
 		}
 		
-		int a = 1;
-		RSpoint[] selectedSkg = skg.getPointsInit_k_0(pointsSkg, 0,a,1);
-		RSpoint selectedAkg = akg.getPointInit_k_0(pointsAkg, 0);
-		RSpoint selectedKg = kg.getPointInit_k_0(pointsKg, 0);
+		int a = 5;
+		RSpoint[] selectedSkg0 = skg0.getPointsInit_k_0(pointsSkg0, 0,1,a);
+		RSpoint[] selectedSkg2 = skg2.getPointsInit_k_0(pointsSkg2, 0,1,a);
+		//RSpoint selectedAkg = akg.getPointInit_k_0(pointsAkg, 0);
+		//RSpoint seleuctedKg = kg.getPointInit_k_0(pointsKg, 0);
 		for (int step=1;step<=100;step++) {
-
 			
 			if (step==1) {
-				System.out.print(" realval = {");
+				System.out.print(" realval0 = {");
 				for (int i=0;i<N;i++) {
-					System.out.printf("%.5f", pointsSkg[i].u);
+					System.out.printf("%.5f", pointsSkg0[i].u);
 					if (i<N-1) System.out.print(",");					
 				}
 				System.out.println("}");
-				System.out.println("AT STEP #0# skg="+selectedSkg[0].i+" akg="+selectedAkg.i+" kg="+selectedKg.i);
+				System.out.print(" realval2 = {");
+				for (int i=0;i<N;i++) {
+					System.out.printf("%.5f", pointsSkg2[i].u);
+					if (i<N-1) System.out.print(",");					
+				}
+				System.out.println("}");
+				
+				System.out.print("AT STEP #0# skg=");
+				for (RSpoint s : selectedSkg0) {
+					System.out.print(s.i+",");
+				}
+				System.out.println();
+				//+" akg="+selectedAkg.i+" kg="+selectedKg.i
 			}				
 			
 			
@@ -246,28 +370,54 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 			
 			
 			
-			double x[] = new double[selectedSkg.length];
+			double x0[] = new double[selectedSkg0.length];
 			for (int i=0;i<a;i++) {
-				x[i] = selectedSkg[i].get_y();
+				x0[i] = selectedSkg0[i].get_y();
 			}
-			selectedSkg = skg.getNextPoints(x, selectedSkg, pointsSkg, a, false);
-			selectedAkg = akg.getNextPoint(selectedAkg.get_y(), selectedAkg, pointsAkg,0, false);
-			selectedKg = kg.getNextPoint(selectedKg.get_y(), selectedKg, pointsKg,0, false);
+			
+			double x2[] = new double[selectedSkg2.length];
+			for (int i=0;i<a;i++) {
+				x2[i] = selectedSkg2[i].get_y();
+			}
+
+			
+			long time = System.currentTimeMillis();
+			//selectedSkg0 = skg0.getNextPoints(x0, selectedSkg0, pointsSkg0, a, false);
+			selectedSkg2 = skg2.getNextPoints(x2, selectedSkg2, pointsSkg2, a, false);
+			System.out.println("TIME "+(System.currentTimeMillis()-time));
+			//selectedAkg = akg.getNextPoint(selectedAkg.get_y(), selectedAkg, pointsAkg,0, false);
+			//selectedKg = kg.getNextPoint(selectedKg.get_y(), selectedKg, pointsKg,0, false);
 			
 			
-			System.out.println("new  kg="+ skg.toStr(kg.getVkg(), false,15));
-			System.out.println("new skg="+ skg.toStr(skg.getVkg(), false,15));
-			System.out.println("new akg="+ skg.toStr(akg.getVkg(), false,15));
+			//System.out.println("new  kg="+ skg.toStr(kg.getVkg(), false,15));
+			//System.out.println("new skg0="+ skg0.toStr(skg0.getVkg(), false,15));
+			System.out.println("new skg2="+ skg2.toStr(skg2.getVkg(), false,15));
+			//System.out.println("new akg="+ skg.toStr(akg.getVkg(), false,15));
 			
-			System.out.println("AT STEP "+step + " skg="+selectedSkg[0].i+" akg="+selectedAkg.i+" kg="+selectedKg.i);
+			/**
+			System.out.print("AT STEP "+step + " skg0=");
+			
+			for (RSpoint s : selectedSkg0) {
+				System.out.print(s.i+",");
+			}
+			System.out.println();**/
+			System.out.print("AT STEP "+step + " skg2=");
+			
+			for (RSpoint s : selectedSkg2) {
+				System.out.print(s.i+",");
+			}
+			System.out.println();
+
+			//+" akg="+selectedAkg.i+" kg="+selectedKg.i
 			
 			
 		}
-		skg.log.close();
+		skg0.log.close();
+		skg2.log.close();
 	}
 	
 	
-	private String toStr (double[] arr, boolean sqrt) {		
+	protected String toStr (double[] arr, boolean sqrt) {		
 		return toStr(arr, sqrt,5);
 	}
 	private String toStr (double[] arr, boolean sqrt, int len) {
@@ -293,6 +443,10 @@ public class SKG_RSalgorithm implements PRSalgorithm {
 	@Override
 	public double getBestVkg() {
 		return this.best_vkg;
+	}
+	@Override
+	public int getPreselectionDistance() {
+		return this.preselectionDistance;
 	}
 	
 

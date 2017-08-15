@@ -8,7 +8,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import ec.util.MersenneTwisterFast;
 import rsalgos.HasMinMeasuresPerPoint;
+import rsalgos.HasPreselection;
 import rsalgos.PRSalgorithm;
 import sim.engine.SimState;
 import sim.engine.Steppable;
@@ -97,7 +99,7 @@ public class ExperimentSimulator extends SimState {
      * @param initQueueSize initial size of the queue 
      */
 	public ExperimentSimulator(long seed, int N, Distribution experimentAvailability, Distribution experimentTime, int a, int m, PRSalgorithm alg, int initQueueSize) {
-		super(seed);
+		super(new MersenneTwisterFast(seed));
 		this.seed = seed;
 		this.N = N;
 		this.alg = alg;
@@ -106,7 +108,8 @@ public class ExperimentSimulator extends SimState {
 		this.experimentTime = experimentTime;
 		this.experimentAvailability = experimentAvailability;
 		this.algName = alg.getClass().getName().substring(alg.getClass().getName().indexOf(".")+1, alg.getClass().getName().indexOf("_"))+
-						(alg instanceof HasMinMeasuresPerPoint?((HasMinMeasuresPerPoint)alg).getMinMeasuresPerPoint():"");
+						(alg instanceof HasMinMeasuresPerPoint?((HasMinMeasuresPerPoint)alg).getMinMeasuresPerPoint():"")+
+						(alg instanceof HasPreselection && ((HasPreselection)alg).getPreselectionDistance()>0?("p"+((HasPreselection)alg).getPreselectionDistance()):"");
 		
 		this.experimentCalculationCount=0;
 		RandomStreamFactory rsf = new RandomStreamFactory(N*3, seed);

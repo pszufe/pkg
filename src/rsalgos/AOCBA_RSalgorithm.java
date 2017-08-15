@@ -6,7 +6,7 @@ import java.util.Arrays;
 import simulator.RSpoint;
 import simulator.tools.RandomStreamFactory;
 
-public class AOCBA_RSalgorithm implements PRSalgorithm,HasMinMeasuresPerPoint {
+public class AOCBA_RSalgorithm implements PRSalgorithm,AsynchcronousRSalgorithm,HasMinMeasuresPerPoint {
 
 	private double sigmas2[] = null; //priors  
 	private double mu[] = null; //priors
@@ -113,5 +113,13 @@ public class AOCBA_RSalgorithm implements PRSalgorithm,HasMinMeasuresPerPoint {
 	@Override
 	public int getMinMeasuresPerPoint() {
 		return minMesurementsPerPoint;
+	}
+	@Override
+	public RSpoint getPointInit_k_0(RSpoint[] points, int w) {		
+		return this.getPointsInit_k_0(points, w, -1, 1)[0];
+	}
+	@Override
+	public RSpoint getNextPoint(double y, RSpoint point, RSpoint[] points, int w, boolean debug) {
+		return this.getNextPoints(new double[]{y}, new RSpoint[]{point}, points, w, debug)[0];
 	}
 }

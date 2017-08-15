@@ -7,7 +7,8 @@ public class Combi {
 	public static void main(String[] args) {
 		
 		
-		int comb1[][] = allDSKG(3, 5);
+		int comb1[][] = allDSKG(3, 5);		
+		
 		int comb2[][] = allDSKG(5, 3);
 		
 		System.out.println("W1:");
@@ -38,6 +39,7 @@ public class Combi {
 	
 	}
 	
+
 	
 	/**
 	 * 
@@ -87,10 +89,11 @@ public class Combi {
         if (k>n-k)
             k=n-k;
  
-        int b=1;
+        long b=1;
         for (int i=1, m=n; i<=k; i++, m--)
             b=b*m/i;
-        return b;
+        if (b > Integer.MAX_VALUE) throw new UnsupportedOperationException("The value for binomial("+n+","+k+") = "+b+" is too large");
+        return (int) b;
     }
 	
 	private static void print(int line[]) {
